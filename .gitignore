@@ -40,6 +40,7 @@ ScaffoldingReadMe.txt
 ~$*
 *~
 CodeCoverage/
+*.sln.DotSettings.user
 
 # MSBuild Binary and Structured Log
 *.binlog
@@ -52,3 +53,6 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Rider
+.idea
