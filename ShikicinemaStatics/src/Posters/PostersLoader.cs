@@ -103,14 +103,14 @@ internal sealed class PostersLoader : IHostedService, IDisposable
             var http = httpFactory.CreateClient(nameof(PostersLoader));
             foreach (var poster in posters)
             {
+                if (options.QueriesInterval > TimeSpan.Zero) await Task.Delay(options.QueriesInterval, token);
                 var bytes = await http.GetByteArrayAsync(poster.OriginalUrl, token);
                 await store.SavePosterAsync(poster.AnimeId, bytes, "jpeg");
 
+                if (options.QueriesInterval > TimeSpan.Zero) await Task.Delay(options.QueriesInterval, token);
                 bytes = await http.GetByteArrayAsync(poster.MainUrl, token);
                 await store.SavePosterAsync(poster.AnimeId, bytes, "webp");
             }
-
-            if (options.QueriesInterval > TimeSpan.Zero) await Task.Delay(options.QueriesInterval, token);
         }
     }
 }
