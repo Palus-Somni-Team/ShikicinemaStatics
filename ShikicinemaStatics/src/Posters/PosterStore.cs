@@ -21,10 +21,10 @@ public class PosterStore : IPosterStore
             await File.WriteAllBytesAsync(filePath, poster);
             return;
         }
-        
+
         var existing = await File.ReadAllBytesAsync(filePath);
         var same = ByteArraysEqual(MD5.HashData(existing), MD5.HashData(poster));
-        
+
         if (!same) await File.WriteAllBytesAsync(filePath, poster);
     }
 

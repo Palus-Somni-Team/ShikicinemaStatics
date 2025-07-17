@@ -14,10 +14,10 @@ public static class ShikicinemaStaticsExtensions
             .Bind(builder.Configuration.GetSection(StaticFileOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
-        
+
         return builder;
     }
-    
+
     public static WebApplication UseShikicinemaStatics(this WebApplication app)
     {
         var options = app.Services.GetRequiredService<IOptions<StaticFileOptions>>();
@@ -31,7 +31,7 @@ public static class ShikicinemaStaticsExtensions
             RequestPath = options.Value.RequestPath,
             FileProvider = new PhysicalFileProvider(physicalPath),
         });
-        
+
         return app;
     }
 
@@ -40,11 +40,11 @@ public static class ShikicinemaStaticsExtensions
         builder.Services.AddOptions<ShikimoriOptions>()
             .Bind(builder.Configuration.GetSection(ShikimoriOptions.SectionName))
             .ValidateDataAnnotations();
-        
+
         builder.Services.AddOptions<PostersLoaderOptions>()
             .Bind(builder.Configuration.GetSection(PostersLoaderOptions.SectionName))
             .ValidateDataAnnotations();
-        
+
         builder.Services.AddScoped<IPosterListProvider, PosterListProvider>();
         builder.Services.AddScoped<IPosterStore, PosterStore>();
 
@@ -59,8 +59,8 @@ public static class ShikicinemaStaticsExtensions
             var options = provider.GetRequiredService<IOptionsMonitor<ShikimoriOptions>>();
             client.BaseAddress = new Uri(options.CurrentValue.Host);
             client.DefaultRequestHeaders.Add("User-Agent", nameof(ShikicinemaStatics));
-        }); 
-        
+        });
+
         return builder;
     }
 }

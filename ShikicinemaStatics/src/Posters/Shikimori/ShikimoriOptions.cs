@@ -5,9 +5,9 @@ namespace ShikicinemaStatics.Posters.Shikimori;
 public class ShikimoriOptions : IValidatableObject
 {
     public const string SectionName = "Shikimori";
-    
+
     public string Host { get; set; } = "https://shikimori.one";
-    
+
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (string.IsNullOrEmpty(Host))

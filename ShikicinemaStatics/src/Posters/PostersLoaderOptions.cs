@@ -5,7 +5,7 @@ namespace ShikicinemaStatics.Posters;
 public class PostersLoaderOptions : IValidatableObject
 {
     public const string SectionName = "PostersLoader";
-    
+
     public bool Enabled { get; set; } = true;
 
     public TimeSpan QueriesInterval { get; set; } = TimeSpan.FromSeconds(1);
