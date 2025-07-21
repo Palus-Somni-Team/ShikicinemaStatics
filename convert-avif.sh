@@ -11,7 +11,7 @@
 # - ImageStick
 
 targetDir=${1?:'specify target directory path'}
-extension=${2:=jpeg}
+extension=${2:-jpeg}
 
 for image in $targetDir/*.$extension; do
         file=$(realpath "$image")
