@@ -2,5 +2,5 @@
 
 public interface IPosterListProvider
 {
-    public Task<Poster[]> GetPostersAsync(int page, int pageSize = 50, CancellationToken cancellationToken = default);
+    public Task<IEnumerable<Poster>> GetPostersAsync(int page, int pageSize = 50, CancellationToken cancellationToken = default);
 }
