@@ -8,7 +8,7 @@
 #
 # DEPENDECIES:
 #
-# - ImageStick
+# - ImageStick (https://imagemagick.org/script/magick.php)
 
 targetDir=${1?:'specify target directory path'}
 extension=${2:-jpeg}
