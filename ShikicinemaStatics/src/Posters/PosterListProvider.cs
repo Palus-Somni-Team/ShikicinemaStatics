@@ -12,7 +12,7 @@ public class PosterListProvider : IPosterListProvider
         _http = httpClientFactory.CreateClient(nameof(PosterListProvider));
     }
 
-    public async Task<Poster[]> GetPostersAsync(
+    public async Task<IEnumerable<Poster>> GetPostersAsync(
         int page,
         int pageSize = 50,
         CancellationToken token = default)
@@ -20,7 +20,7 @@ public class PosterListProvider : IPosterListProvider
         const string gqlReqTemplate =
             """
             {{
-              animes(page: {0}, limit: {1}, order: id) {{
+              animes(page: {0}, limit: {1}, order: id, censored: false) {{
                 id
                 poster {{ originalUrl mainUrl }}
               }}
@@ -39,7 +39,6 @@ public class PosterListProvider : IPosterListProvider
 
         return responseBody.Data.Animes
             .Where(a => a.Poster != null)
-            .Select(a => new Poster(a.Id, a.Poster!.OriginalUrl, a.Poster!.MainUrl))
-            .ToArray();
+            .Select(a => new Poster(a.Id, a.Poster!.OriginalUrl, a.Poster!.MainUrl));
     }
 }

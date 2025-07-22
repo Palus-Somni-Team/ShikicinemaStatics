@@ -91,6 +91,7 @@ internal sealed class PostersLoader : IHostedService, IDisposable
         var posterListProvider = scope.ServiceProvider.GetRequiredService<IPosterListProvider>();
         var httpFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
         var store = scope.ServiceProvider.GetRequiredService<IPosterStore>();
+        var http = httpFactory.CreateClient(nameof(PostersLoader));
 
         var page = 0;
         while (!token.IsCancellationRequested)
@@ -98,9 +99,7 @@ internal sealed class PostersLoader : IHostedService, IDisposable
             page++;
             var posters = await posterListProvider.GetPostersAsync(page, cancellationToken: token);
 
-            if (!posters.Any()) return;
-
-            var http = httpFactory.CreateClient(nameof(PostersLoader));
+            var hasPosters = false;
             foreach (var poster in posters)
             {
                 if (options.QueriesInterval > TimeSpan.Zero) await Task.Delay(options.QueriesInterval, token);
@@ -110,7 +109,10 @@ internal sealed class PostersLoader : IHostedService, IDisposable
                 if (options.QueriesInterval > TimeSpan.Zero) await Task.Delay(options.QueriesInterval, token);
                 bytes = await http.GetByteArrayAsync(poster.MainUrl, token);
                 await store.SavePosterAsync(poster.AnimeId, bytes, "webp");
+                hasPosters = true;
             }
+
+            if (!hasPosters) break;
         }
     }
 }
