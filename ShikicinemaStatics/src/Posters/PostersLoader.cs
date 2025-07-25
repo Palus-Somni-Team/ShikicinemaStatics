@@ -11,6 +11,7 @@ internal sealed class PostersLoader : IHostedService, IDisposable
     private CancellationTokenSource? _cts;
     private Task? _task;
     private IDisposable? _onOptionsChange;
+    private PostersLoaderOptions? _currentOptions;
 
     public PostersLoader(IServiceProvider serviceProvider,
         IOptionsMonitor<PostersLoaderOptions> monitor,
@@ -24,12 +25,17 @@ internal sealed class PostersLoader : IHostedService, IDisposable
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _cts = new CancellationTokenSource();
+        _currentOptions = _monitor.CurrentValue;
         _task = LoadPostersAsync(_monitor.CurrentValue, _cts.Token);
 
         _onOptionsChange = _monitor.OnChange(options =>
         {
+            if (_currentOptions == options) return;
+            _currentOptions = options;
+
             _cts?.Cancel();
             _cts = new CancellationTokenSource();
+            _task.Wait(_cts.Token);
             _task = LoadPostersAsync(options, _cts.Token);
         });
 
