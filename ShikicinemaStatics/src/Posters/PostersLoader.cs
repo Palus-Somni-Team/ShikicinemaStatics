@@ -50,13 +50,15 @@ internal sealed class PostersLoader : IHostedService, IDisposable
 
     private async Task LoadPostersAsync(PostersLoaderOptions options, CancellationToken token)
     {
+        using var scope = _logger.BeginScope(new Dictionary<string, object> { ["Instance"] = options.GetHashCode() });
+
         if (!options.Enabled)
         {
-            _logger.LogInformation("Posters loading is disabled {Instance}", options.GetHashCode());
+            _logger.LogInformation("Posters loading is disabled");
             return;
         }
 
-        _logger.LogInformation("Posters loading has started {Instance}", options.GetHashCode());
+        _logger.LogInformation("Posters loading has started");
 
         try
         {
@@ -82,7 +84,7 @@ internal sealed class PostersLoader : IHostedService, IDisposable
         {
         }
 
-        _logger.LogInformation("Posters loading has stopped {Instance}", options.GetHashCode());
+        _logger.LogInformation("Posters loading has stopped");
     }
 
     private async Task LoadBatchesAsync(PostersLoaderOptions options, CancellationToken token)
@@ -97,11 +99,14 @@ internal sealed class PostersLoader : IHostedService, IDisposable
         while (!token.IsCancellationRequested)
         {
             page++;
+
+            _logger.LogInformation("Loading posters page {Page}", page);
             var posters = await posterListProvider.GetPostersAsync(page, cancellationToken: token);
 
             var hasPosters = false;
             foreach (var poster in posters)
             {
+                _logger.LogInformation("Loading posters for {AnimeId}", poster.AnimeId);
                 if (options.QueriesInterval > TimeSpan.Zero) await Task.Delay(options.QueriesInterval, token);
                 var bytes = await http.GetByteArrayAsync(poster.OriginalUrl, token);
                 await store.SavePosterAsync(poster.AnimeId, bytes, "jpeg");
@@ -109,9 +114,12 @@ internal sealed class PostersLoader : IHostedService, IDisposable
                 if (options.QueriesInterval > TimeSpan.Zero) await Task.Delay(options.QueriesInterval, token);
                 bytes = await http.GetByteArrayAsync(poster.MainUrl, token);
                 await store.SavePosterAsync(poster.AnimeId, bytes, "webp");
+
+                _logger.LogInformation("Posters for {AnimeId} has been loaded", poster.AnimeId);
                 hasPosters = true;
             }
 
+            _logger.LogInformation("Posters page {Page} has been loaded", page);
             if (!hasPosters) break;
         }
     }

@@ -1,14 +1,29 @@
+using Serilog;
 using ShikicinemaStatics;
 
 var builder = WebApplication.CreateSlimBuilder(args);
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
+Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(builder.Configuration).CreateLogger();
 
-builder.AddShikicinemaStatics()
-    .AddPostersLoader();
+try
+{
+    builder.Logging.ClearProviders();
+    builder.Services.AddSerilog();
 
-var app = builder.Build();
+    builder.AddShikicinemaStatics()
+        .AddPostersLoader();
 
-app.UseShikicinemaStatics();
+    var app = builder.Build();
 
-app.Run();
+    app.UseSerilogRequestLogging();
+    app.UseShikicinemaStatics();
+
+    app.Run();
+}
+catch (Exception e)
+{
+    Log.Error(e, "Application failed");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
