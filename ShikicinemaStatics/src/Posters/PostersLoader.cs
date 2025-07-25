@@ -68,8 +68,9 @@ internal sealed class PostersLoader : IHostedService, IDisposable
                 {
                     await LoadBatchesAsync(options, token);
                 }
-                catch (OperationCanceledException e) when (e.CancellationToken == token)
+                catch (OperationCanceledException)
                 {
+                    break;
                 }
                 catch (Exception e)
                 {
@@ -80,7 +81,7 @@ internal sealed class PostersLoader : IHostedService, IDisposable
                 await Task.Delay(options.ScanInterval, token);
             }
         }
-        catch (OperationCanceledException e) when (e.CancellationToken == token)
+        catch (OperationCanceledException)
         {
         }
 
