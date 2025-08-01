@@ -28,6 +28,19 @@ public class PosterStore : IPosterStore
         if (!same) await File.WriteAllBytesAsync(filePath, poster);
     }
 
+    public int? GetLastLoadedAnimeId(string extension)
+    {
+        var lastId = Directory.EnumerateFileSystemEntries(_basePath, $"*.{extension}")
+            .Select(path =>
+            {
+                var lastId = Path.GetFileNameWithoutExtension(path);
+                return int.TryParse(lastId, out var id) ? id : 0;
+            })
+            .Max();
+
+        return lastId;
+    }
+
     private static bool ByteArraysEqual(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right)
     {
         return left.SequenceEqual(right);

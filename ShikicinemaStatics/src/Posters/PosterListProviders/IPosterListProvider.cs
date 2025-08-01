@@ -1,4 +1,4 @@
-﻿namespace ShikicinemaStatics.Posters;
+﻿namespace ShikicinemaStatics.Posters.PosterListProviders;
 
 public interface IPosterListProvider
 {

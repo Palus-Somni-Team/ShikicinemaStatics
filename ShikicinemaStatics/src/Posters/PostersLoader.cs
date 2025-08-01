@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
+using ShikicinemaStatics.Posters.PosterListProviders;
 
 namespace ShikicinemaStatics.Posters;
 
@@ -114,13 +115,19 @@ internal sealed class PostersLoader : IHostedService, IDisposable
             foreach (var poster in posters)
             {
                 _logger.LogInformation("Loading posters for {AnimeId}", poster.AnimeId);
-                if (options.QueriesInterval > TimeSpan.Zero) await Task.Delay(options.QueriesInterval, token);
-                var bytes = await http.GetByteArrayAsync(poster.OriginalUrl, token);
-                await store.SavePosterAsync(poster.AnimeId, bytes, "jpeg");
+                if (!string.IsNullOrEmpty(poster.OriginalUrl))
+                {
+                    if (options.QueriesInterval > TimeSpan.Zero) await Task.Delay(options.QueriesInterval, token);
+                    var bytes = await http.GetByteArrayAsync(poster.OriginalUrl, token);
+                    await store.SavePosterAsync(poster.AnimeId, bytes, "jpeg");
+                }
 
-                if (options.QueriesInterval > TimeSpan.Zero) await Task.Delay(options.QueriesInterval, token);
-                bytes = await http.GetByteArrayAsync(poster.MainUrl, token);
-                await store.SavePosterAsync(poster.AnimeId, bytes, "webp");
+                if (!string.IsNullOrEmpty(poster.MainUrl))
+                {
+                    if (options.QueriesInterval > TimeSpan.Zero) await Task.Delay(options.QueriesInterval, token);
+                    var bytes = await http.GetByteArrayAsync(poster.MainUrl, token);
+                    await store.SavePosterAsync(poster.AnimeId, bytes, "webp");
+                }
 
                 _logger.LogInformation("Posters for {AnimeId} has been loaded", poster.AnimeId);
                 hasPosters = true;
