@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using ShikicinemaStatics.Posters.PosterListProviders;
 
 namespace ShikicinemaStatics.Posters;
 
@@ -11,6 +12,8 @@ public record PostersLoaderOptions : IValidatableObject
     public TimeSpan QueriesInterval { get; init; } = TimeSpan.FromSeconds(1);
 
     public TimeSpan ScanInterval { get; init; } = TimeSpan.FromDays(1);
+
+    public PosterListProviderStrategy ListProviderStrategy { get; init; } = PosterListProviderStrategy.StartToEndJpegAndWebp;
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
