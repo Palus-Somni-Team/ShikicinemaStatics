@@ -107,34 +107,68 @@ internal sealed class PostersLoader : IHostedService, IDisposable
         while (!token.IsCancellationRequested)
         {
             page++;
+            using var pageLogScope = _logger.BeginScope(new Dictionary<string, object> { ["Page"] = page });
 
-            _logger.LogInformation("Loading posters page {Page}", page);
-            var posters = await posterListProvider.GetPostersAsync(page, cancellationToken: token);
+            _logger.LogInformation("Loading posters page");
+            var posters = await DoWithInfinityRetriesAsync(
+                () => posterListProvider.GetPostersAsync(page, cancellationToken: token),
+                "Loading posters page"
+            );
 
             var hasPosters = false;
             foreach (var poster in posters)
             {
-                _logger.LogInformation("Loading posters for {AnimeId}", poster.AnimeId);
+                using var logScope = _logger.BeginScope(new Dictionary<string, object> { ["AnimeId"] = poster.AnimeId });
+                _logger.LogInformation("Loading poster");
                 if (!string.IsNullOrEmpty(poster.OriginalUrl))
                 {
+                    var bytes = await DoWithInfinityRetriesAsync(
+                        () => http.GetByteArrayAsync(poster.OriginalUrl, token),
+                        "Loading poster"
+                    );
+
+                    await DoWithInfinityRetriesAsync(
+                        async () =>
+                        {
+                            await store.SavePosterAsync(poster.AnimeId, bytes);
+                            return true;
+                        },
+                        "Poster saving"
+                    );
+
                     if (options.QueriesInterval > TimeSpan.Zero) await Task.Delay(options.QueriesInterval, token);
-                    var bytes = await http.GetByteArrayAsync(poster.OriginalUrl, token);
-                    await store.SavePosterAsync(poster.AnimeId, bytes, "jpeg");
                 }
 
-                if (!string.IsNullOrEmpty(poster.MainUrl))
-                {
-                    if (options.QueriesInterval > TimeSpan.Zero) await Task.Delay(options.QueriesInterval, token);
-                    var bytes = await http.GetByteArrayAsync(poster.MainUrl, token);
-                    await store.SavePosterAsync(poster.AnimeId, bytes, "webp");
-                }
-
-                _logger.LogInformation("Posters for {AnimeId} has been loaded", poster.AnimeId);
+                _logger.LogInformation("Poster has been loaded");
                 hasPosters = true;
             }
 
-            _logger.LogInformation("Posters page {Page} has been loaded", page);
+            _logger.LogInformation("Posters page has been loaded");
             if (!hasPosters) break;
+        }
+    }
+
+    private async Task<T> DoWithInfinityRetriesAsync<T>(Func<Task<T>> action, string actionName)
+    {
+        var pause = TimeSpan.FromSeconds(1);
+        var maxPause = TimeSpan.FromMinutes(20);
+        while (true)
+        {
+            try
+            {
+                var result = await action();
+                return result;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "InfinityRetries failed for {ActionName}. Sleep for {Pause}", pause, actionName);
+                await Task.Delay(pause);
+                pause = pause >= maxPause ? maxPause : pause + pause;
+            }
         }
     }
 }

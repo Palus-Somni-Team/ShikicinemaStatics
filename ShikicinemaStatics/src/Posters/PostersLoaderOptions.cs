@@ -13,7 +13,7 @@ public record PostersLoaderOptions : IValidatableObject
 
     public TimeSpan ScanInterval { get; init; } = TimeSpan.FromDays(1);
 
-    public PosterListProviderStrategy ListProviderStrategy { get; init; } = PosterListProviderStrategy.StartToEndJpegAndWebp;
+    public PosterListProviderStrategy ListProviderStrategy { get; init; } = PosterListProviderStrategy.StartToEnd;
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

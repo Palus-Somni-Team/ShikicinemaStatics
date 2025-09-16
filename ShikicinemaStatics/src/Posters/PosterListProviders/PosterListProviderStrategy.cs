@@ -2,6 +2,6 @@
 
 public enum PosterListProviderStrategy
 {
-    StartToEndJpegAndWebp,
-    EndToLoadedJpegAndWebp,
+    StartToEnd,
+    EndToLoaded,
 }
