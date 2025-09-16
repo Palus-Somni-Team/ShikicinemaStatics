@@ -9,5 +9,6 @@
     <ItemGroup>
         <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
         <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
+        <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.8.2" />
     </ItemGroup>
 </Project>

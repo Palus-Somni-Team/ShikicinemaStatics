@@ -6,7 +6,4 @@ public class Poster
 {
     [JsonPropertyName("originalUrl")]
     public string? OriginalUrl { get; set; }
-
-    [JsonPropertyName("mainUrl")]
-    public string? MainUrl { get; set; }
 }

@@ -2,20 +2,14 @@
 
 namespace ShikicinemaStatics.Posters.PosterListProviders;
 
-public class EndToLoadedJpegAndWebpPosterListProvider : PosterListProviderBase
+public class EndToLoadedPosterListProvider : PosterListProviderBase
 {
     private readonly Lazy<int> _lastLoadedAnimeId;
 
-    public EndToLoadedJpegAndWebpPosterListProvider(IHttpClientFactory httpClientFactory, IPosterStore store)
+    public EndToLoadedPosterListProvider(IHttpClientFactory httpClientFactory, IPosterStore store)
         : base(httpClientFactory)
     {
-        _lastLoadedAnimeId = new Lazy<int>(() =>
-        {
-            var jpegId = store.GetLastLoadedAnimeId("jpeg");
-            var webpId = store.GetLastLoadedAnimeId("webp");
-
-            return Math.Min(jpegId ?? 0, webpId ?? 0);
-        });
+        _lastLoadedAnimeId = new Lazy<int>(() => store.GetLastLoadedAnimeId() ?? 0);
     }
 
     public override async Task<IEnumerable<Poster>> GetPostersAsync(int page, int pageSize = 50, CancellationToken token = default)
@@ -25,7 +19,7 @@ public class EndToLoadedJpegAndWebpPosterListProvider : PosterListProviderBase
             {{
               animes(page: {0}, limit: {1}, order: id_desc, censored: false) {{
                 id
-                poster {{ originalUrl mainUrl }}
+                poster {{ originalUrl }}
               }}
             }}
             """;
@@ -54,7 +48,7 @@ public class EndToLoadedJpegAndWebpPosterListProvider : PosterListProviderBase
                 yield break;
             }
 
-            yield return new Poster(anime.Id, anime.Poster.OriginalUrl, anime.Poster.MainUrl);
+            yield return new Poster(anime.Id, anime.Poster.OriginalUrl);
         }
     }
 }

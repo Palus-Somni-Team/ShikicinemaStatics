@@ -46,8 +46,8 @@ public static class ShikicinemaStaticsExtensions
             .Bind(builder.Configuration.GetSection(PostersLoaderOptions.SectionName))
             .ValidateDataAnnotations();
 
-        builder.Services.AddScoped<StartToEndJpegAndWebpPosterListProvider>();
-        builder.Services.AddScoped<EndToLoadedJpegAndWebpPosterListProvider>();
+        builder.Services.AddScoped<StartToEndPosterListProvider>();
+        builder.Services.AddScoped<EndToLoadedPosterListProvider>();
 
         builder.Services.AddScoped<PosterListProviderFactory>();
         builder.Services.AddScoped<IPosterListProvider>(service =>

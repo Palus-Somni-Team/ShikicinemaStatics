@@ -2,9 +2,9 @@
 
 namespace ShikicinemaStatics.Posters.PosterListProviders;
 
-public class StartToEndJpegAndWebpPosterListProvider : PosterListProviderBase
+public class StartToEndPosterListProvider : PosterListProviderBase
 {
-    public StartToEndJpegAndWebpPosterListProvider(IHttpClientFactory httpClientFactory) : base(httpClientFactory)
+    public StartToEndPosterListProvider(IHttpClientFactory httpClientFactory) : base(httpClientFactory)
     {
     }
 
@@ -15,7 +15,7 @@ public class StartToEndJpegAndWebpPosterListProvider : PosterListProviderBase
             {{
               animes(page: {0}, limit: {1}, order: id, censored: false) {{
                 id
-                poster {{ originalUrl mainUrl }}
+                poster {{ originalUrl }}
               }}
             }}
             """;
@@ -29,6 +29,6 @@ public class StartToEndJpegAndWebpPosterListProvider : PosterListProviderBase
     {
         return animes
             .Where(p => p.Poster != null)
-            .Select(p => new Poster(p.Id, p.Poster!.MainUrl, p.Poster.OriginalUrl));
+            .Select(p => new Poster(p.Id, p.Poster!.OriginalUrl));
     }
 }

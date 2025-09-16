@@ -16,8 +16,8 @@ public class PosterListProviderFactory
     {
         return _optionsMonitor.CurrentValue.ListProviderStrategy switch
         {
-            StartToEndJpegAndWebp => serviceProvider.GetRequiredService<StartToEndJpegAndWebpPosterListProvider>(),
-            EndToLoadedJpegAndWebp => serviceProvider.GetRequiredService<EndToLoadedJpegAndWebpPosterListProvider>(),
+            StartToEnd => serviceProvider.GetRequiredService<StartToEndPosterListProvider>(),
+            EndToLoaded => serviceProvider.GetRequiredService<EndToLoadedPosterListProvider>(),
             _ => throw new NotSupportedException($"Unsupported strategy type: {_optionsMonitor.CurrentValue.ListProviderStrategy}")
         };
     }
