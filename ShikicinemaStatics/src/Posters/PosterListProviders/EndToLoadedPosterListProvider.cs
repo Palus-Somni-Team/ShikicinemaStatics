@@ -1,4 +1,6 @@
-﻿using ShikicinemaStatics.Posters.Shikimori;
+﻿using Polly;
+using ShikicinemaStatics.Polly;
+using ShikicinemaStatics.Posters.Shikimori;
 
 namespace ShikicinemaStatics.Posters.PosterListProviders;
 
@@ -6,8 +8,10 @@ public class EndToLoadedPosterListProvider : PosterListProviderBase
 {
     private readonly Lazy<int> _lastLoadedAnimeId;
 
-    public EndToLoadedPosterListProvider(IHttpClientFactory httpClientFactory, IPosterStore store)
-        : base(httpClientFactory)
+    public EndToLoadedPosterListProvider(IHttpClientFactory httpClientFactory,
+        [FromKeyedServices(PollyExtensions.ShikiClientPollyName)] ResiliencePipeline pipeline,
+        IPosterStore store)
+        : base(httpClientFactory, pipeline)
     {
         _lastLoadedAnimeId = new Lazy<int>(() => store.GetLastLoadedAnimeId() ?? 0);
     }
