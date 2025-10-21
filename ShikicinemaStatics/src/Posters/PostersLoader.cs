@@ -99,9 +99,7 @@ internal sealed class PostersLoader : IHostedService, IDisposable
     {
         await using var scope = _serviceProvider.CreateAsyncScope();
         var posterListProvider = scope.ServiceProvider.GetRequiredService<IPosterListProvider>();
-        var httpFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
         var store = scope.ServiceProvider.GetRequiredService<IPosterStore>();
-        var http = httpFactory.CreateClient(nameof(PostersLoader));
 
         var page = 0;
         while (!token.IsCancellationRequested)
@@ -109,32 +107,17 @@ internal sealed class PostersLoader : IHostedService, IDisposable
             page++;
             using var pageLogScope = _logger.BeginScope(new Dictionary<string, object> { ["Page"] = page });
 
-            _logger.LogInformation("Loading posters page");
-            var posters = await DoWithInfinityRetriesAsync(
-                () => posterListProvider.GetPostersAsync(page, cancellationToken: token),
-                "Loading posters page"
-            );
+            var posters = await posterListProvider.GetPostersAsync(page, cancellationToken: token);
 
             var hasPosters = false;
             foreach (var poster in posters)
             {
                 using var logScope = _logger.BeginScope(new Dictionary<string, object> { ["AnimeId"] = poster.AnimeId });
-                _logger.LogInformation("Loading poster");
                 if (!string.IsNullOrEmpty(poster.OriginalUrl))
                 {
-                    var bytes = await DoWithInfinityRetriesAsync(
-                        () => http.GetByteArrayAsync(poster.OriginalUrl, token),
-                        "Loading poster"
-                    );
+                    var bytes = await posterListProvider.LoadImageBytesAsync(poster.OriginalUrl, token);
 
-                    await DoWithInfinityRetriesAsync(
-                        async () =>
-                        {
-                            await store.SavePosterAsync(poster.AnimeId, bytes);
-                            return true;
-                        },
-                        "Poster saving"
-                    );
+                    await store.SavePosterAsync(poster.AnimeId, bytes);
 
                     if (options.QueriesInterval > TimeSpan.Zero) await Task.Delay(options.QueriesInterval, token);
                 }
@@ -145,30 +128,6 @@ internal sealed class PostersLoader : IHostedService, IDisposable
 
             _logger.LogInformation("Posters page has been loaded");
             if (!hasPosters) break;
-        }
-    }
-
-    private async Task<T> DoWithInfinityRetriesAsync<T>(Func<Task<T>> action, string actionName)
-    {
-        var pause = TimeSpan.FromSeconds(1);
-        var maxPause = TimeSpan.FromMinutes(20);
-        while (true)
-        {
-            try
-            {
-                var result = await action();
-                return result;
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "InfinityRetries failed for {ActionName}. Sleep for {Pause}", pause, actionName);
-                await Task.Delay(pause);
-                pause = pause >= maxPause ? maxPause : pause + pause;
-            }
         }
     }
 }

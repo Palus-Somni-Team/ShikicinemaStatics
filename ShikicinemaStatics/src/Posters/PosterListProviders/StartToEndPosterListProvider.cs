@@ -1,10 +1,14 @@
-﻿using ShikicinemaStatics.Posters.Shikimori;
+﻿using Polly;
+using ShikicinemaStatics.Polly;
+using ShikicinemaStatics.Posters.Shikimori;
 
 namespace ShikicinemaStatics.Posters.PosterListProviders;
 
 public class StartToEndPosterListProvider : PosterListProviderBase
 {
-    public StartToEndPosterListProvider(IHttpClientFactory httpClientFactory) : base(httpClientFactory)
+    public StartToEndPosterListProvider(IHttpClientFactory httpClientFactory,
+        [FromKeyedServices(PollyExtensions.ShikiClientPollyName)] ResiliencePipeline pipeline)
+        : base(httpClientFactory, pipeline)
     {
     }
 

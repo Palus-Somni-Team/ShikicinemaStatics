@@ -57,11 +57,6 @@ public static class ShikicinemaStaticsExtensions
         builder.Services.AddScoped<IPosterStore, PosterStore>();
 
         builder.Services.AddHostedService<PostersLoader>();
-
-        builder.Services.AddHttpClient(nameof(PostersLoader), client =>
-        {
-            client.DefaultRequestHeaders.Add("User-Agent", nameof(ShikicinemaStatics));
-        });
         builder.Services.AddHttpClient(nameof(PosterListProviderBase), (provider, client) =>
         {
             var options = provider.GetRequiredService<IOptionsMonitor<ShikimoriOptions>>();
