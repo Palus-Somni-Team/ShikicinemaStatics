@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Net.Http.Json;
+using System.Text.Json;
 using ShikicinemaStatics.Posters.Shikimori;
 
 namespace ShikicinemaStatics.Posters.PosterListProviders;
@@ -20,11 +21,6 @@ public abstract class PosterListProviderBase : IPosterListProvider
 
         var responseString = await response.Content.ReadAsStringAsync(token);
         var responseBody = JsonSerializer.Deserialize<GqlResponse<GetAnimesResponse>>(responseString);
-        if (responseBody?.Data?.Animes == null)
-        {
-            throw new Exception("Cannot parse response body: " + responseString);
-        }
-
-        return responseBody.Data.Animes;
+        return responseBody?.Data?.Animes ?? throw new Exception("Cannot parse response body: " + responseString);
     }
 }

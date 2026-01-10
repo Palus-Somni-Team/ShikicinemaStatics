@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.FileProviders;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using ShikicinemaStatics.Posters;
 using ShikicinemaStatics.Posters.PosterListProviders;
@@ -8,67 +8,42 @@ namespace ShikicinemaStatics;
 
 public static class ShikicinemaStaticsExtensions
 {
-    public static WebApplicationBuilder AddShikicinemaStatics(this WebApplicationBuilder builder)
+    public static void AddShikicinemaStatics(this IServiceCollection services, IConfiguration configuration)
     {
-        builder.Services
+        services
             .AddOptions<StaticFileOptions>()
-            .Bind(builder.Configuration.GetSection(StaticFileOptions.SectionName))
+            .Bind(configuration.GetSection(StaticFileOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        return builder;
-    }
-
-    public static WebApplication UseShikicinemaStatics(this WebApplication app)
-    {
-        var options = app.Services.GetRequiredService<IOptions<StaticFileOptions>>();
-        var isPhysicalPathAbsolute = Path.IsPathRooted(options.Value.PhysicalPath);
-        var physicalPath = isPhysicalPathAbsolute
-            ? options.Value.PhysicalPath
-            : Path.Combine(Directory.GetCurrentDirectory(), options.Value.PhysicalPath);
-
-        app.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
-        {
-            RequestPath = options.Value.RequestPath,
-            FileProvider = new PhysicalFileProvider(physicalPath),
-        });
-
-        return app;
-    }
-
-    public static WebApplicationBuilder AddPostersLoader(this WebApplicationBuilder builder)
-    {
-        builder.Services.AddOptions<ShikimoriOptions>()
-            .Bind(builder.Configuration.GetSection(ShikimoriOptions.SectionName))
+        services.AddOptions<ShikimoriOptions>()
+            .Bind(configuration.GetSection(ShikimoriOptions.SectionName))
             .ValidateDataAnnotations();
 
-        builder.Services.AddOptions<PostersLoaderOptions>()
-            .Bind(builder.Configuration.GetSection(PostersLoaderOptions.SectionName))
+        services.AddOptions<PostersLoaderOptions>()
+            .Bind(configuration.GetSection(PostersLoaderOptions.SectionName))
             .ValidateDataAnnotations();
 
-        builder.Services.AddScoped<StartToEndPosterListProvider>();
-        builder.Services.AddScoped<EndToLoadedPosterListProvider>();
+        services.AddScoped<StartToEndPosterListProvider>();
+        services.AddScoped<EndToLoadedPosterListProvider>();
 
-        builder.Services.AddScoped<PosterListProviderFactory>();
-        builder.Services.AddScoped<IPosterListProvider>(service =>
+        services.AddScoped<PosterListProviderFactory>();
+        services.AddScoped<IPosterListProvider>(service =>
             service.GetRequiredService<PosterListProviderFactory>().CreateProvider(service)
         );
 
-        builder.Services.AddScoped<IPosterStore, PosterStore>();
+        services.AddScoped<IPosterStore, PosterStore>();
+        services.AddScoped<IPostersLoader, PostersLoader>();
 
-        builder.Services.AddHostedService<PostersLoader>();
-
-        builder.Services.AddHttpClient(nameof(PostersLoader), client =>
+        services.AddHttpClient(nameof(PostersLoader), client =>
         {
             client.DefaultRequestHeaders.Add("User-Agent", nameof(ShikicinemaStatics));
         });
-        builder.Services.AddHttpClient(nameof(PosterListProviderBase), (provider, client) =>
+        services.AddHttpClient(nameof(PosterListProviderBase), (provider, client) =>
         {
             var options = provider.GetRequiredService<IOptionsMonitor<ShikimoriOptions>>();
             client.BaseAddress = new Uri(options.CurrentValue.Host);
             client.DefaultRequestHeaders.Add("User-Agent", nameof(ShikicinemaStatics));
         });
-
-        return builder;
     }
 }
