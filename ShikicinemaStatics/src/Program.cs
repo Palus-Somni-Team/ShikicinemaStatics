@@ -1,31 +1,41 @@
+using Microsoft.Extensions.Configuration;
 using Serilog;
-using ShikicinemaStatics;
 using ShikicinemaStatics.Polly;
+using ShikicinemaStatics.Posters;
 
-var builder = WebApplication.CreateSlimBuilder(args);
-Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(builder.Configuration).CreateLogger();
+namespace ShikicinemaStatics;
 
-try
+internal static class Program
 {
-    builder.Logging.ClearProviders();
-    builder.Services.AddSerilog();
-    builder.Services.AddShikiResiliencePipeline();
+    public static async Task Main(string[] _)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json")
+            .AddEnvironmentVariables()
+            .Build();
 
-    builder.AddShikicinemaStatics()
-        .AddPostersLoader();
+        Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(configuration).CreateLogger();
 
-    var app = builder.Build();
+        try
+        {
+            var serviceCollection = new ServiceCollection();
+            serviceCollection.AddSingleton<IConfiguration>(configuration);
+            serviceCollection.AddSerilog();
+            serviceCollection.AddShikicinemaStatics(configuration);
+            serviceCollection.AddShikiResiliencePipeline();
+            var serviceProvider = new DefaultServiceProviderFactory().CreateServiceProvider(serviceCollection);
 
-    app.UseSerilogRequestLogging();
-    app.UseShikicinemaStatics();
-
-    app.Run();
-}
-catch (Exception e)
-{
-    Log.Error(e, "Application failed");
-}
-finally
-{
-    Log.CloseAndFlush();
+            await using var scope = serviceProvider.CreateAsyncScope();
+            var posterLoader = scope.ServiceProvider.GetRequiredService<IPostersLoader>();
+            await posterLoader.LoadPostersAsync();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Application failed");
+        }
+        finally
+        {
+            await Log.CloseAndFlushAsync();
+        }
+    }
 }

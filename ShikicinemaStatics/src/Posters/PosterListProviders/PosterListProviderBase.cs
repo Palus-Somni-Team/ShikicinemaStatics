@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+using System.Net.Http.Json;
+using System.Text.Json;
 using Polly;
 using ShikicinemaStatics.Polly;
 using ShikicinemaStatics.Posters.Shikimori;

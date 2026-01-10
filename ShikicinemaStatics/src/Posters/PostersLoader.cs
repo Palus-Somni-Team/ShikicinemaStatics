@@ -3,103 +3,30 @@ using ShikicinemaStatics.Posters.PosterListProviders;
 
 namespace ShikicinemaStatics.Posters;
 
-internal sealed class PostersLoader : IHostedService, IDisposable
+internal sealed class PostersLoader : IPostersLoader
 {
-    private readonly IOptionsMonitor<PostersLoaderOptions> _monitor;
-    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<PostersLoader> _logger;
+    private readonly IPosterListProvider _posterListProvider;
+    private readonly IPosterStore _posterStore;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly PostersLoaderOptions _options;
 
-    private CancellationTokenSource? _cts;
-    private Task? _task;
-    private IDisposable? _onOptionsChange;
-    private PostersLoaderOptions? _currentOptions;
-
-    public PostersLoader(IServiceProvider serviceProvider,
-        IOptionsMonitor<PostersLoaderOptions> monitor,
+    public PostersLoader(IPosterListProvider posterListProvider,
+        IPosterStore posterStore,
+        IHttpClientFactory httpClientFactory,
+        IOptionsSnapshot<PostersLoaderOptions> options,
         ILogger<PostersLoader> logger)
     {
-        _serviceProvider = serviceProvider;
-        _monitor = monitor;
+        _posterListProvider = posterListProvider;
+        _posterStore = posterStore;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
+        _options = options.Value;
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public async Task LoadPostersAsync(CancellationToken token = default)
     {
-        _cts = new CancellationTokenSource();
-        _currentOptions = _monitor.CurrentValue;
-        _task = LoadPostersAsync(_monitor.CurrentValue, _cts.Token);
-
-        _onOptionsChange = _monitor.OnChange(options =>
-        {
-            if (_currentOptions == options) return;
-            _currentOptions = options;
-
-            _cts?.Cancel();
-            _cts = new CancellationTokenSource();
-            _task.Wait(_cts.Token);
-            _task = LoadPostersAsync(options, _cts.Token);
-        });
-
-        return Task.CompletedTask;
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        _cts?.Cancel();
-        return _task ?? Task.CompletedTask;
-    }
-
-    public void Dispose()
-    {
-        _cts?.Dispose();
-        _onOptionsChange?.Dispose();
-    }
-
-    private async Task LoadPostersAsync(PostersLoaderOptions options, CancellationToken token)
-    {
-        using var scope = _logger.BeginScope(new Dictionary<string, object> { ["Instance"] = options.GetHashCode() });
-
-        if (!options.Enabled)
-        {
-            _logger.LogInformation("Posters loading is disabled");
-            return;
-        }
-
-        _logger.LogInformation("Posters loading has started");
-
-        try
-        {
-            while (!token.IsCancellationRequested)
-            {
-                try
-                {
-                    await LoadBatchesAsync(options, token);
-                }
-                catch (OperationCanceledException)
-                {
-                    break;
-                }
-                catch (Exception e)
-                {
-                    _logger.LogError(e, "Posters loading has failed");
-                }
-
-                _logger.LogInformation("Posters loading has finished. Sleep for {ScanInterval}", options.ScanInterval.ToString());
-                await Task.Delay(options.ScanInterval, token);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-        }
-
-        _logger.LogInformation("Posters loading has stopped");
-    }
-
-    private async Task LoadBatchesAsync(PostersLoaderOptions options, CancellationToken token)
-    {
-        await using var scope = _serviceProvider.CreateAsyncScope();
-        var posterListProvider = scope.ServiceProvider.GetRequiredService<IPosterListProvider>();
-        var store = scope.ServiceProvider.GetRequiredService<IPosterStore>();
+        using var http = _httpClientFactory.CreateClient(nameof(PostersLoader));
 
         var page = 0;
         while (!token.IsCancellationRequested)
@@ -107,7 +34,7 @@ internal sealed class PostersLoader : IHostedService, IDisposable
             page++;
             using var pageLogScope = _logger.BeginScope(new Dictionary<string, object> { ["Page"] = page });
 
-            var posters = await posterListProvider.GetPostersAsync(page, cancellationToken: token);
+            var posters = await _posterListProvider.GetPostersAsync(page, cancellationToken: token);
 
             var hasPosters = false;
             foreach (var poster in posters)
@@ -115,11 +42,11 @@ internal sealed class PostersLoader : IHostedService, IDisposable
                 using var logScope = _logger.BeginScope(new Dictionary<string, object> { ["AnimeId"] = poster.AnimeId });
                 if (!string.IsNullOrEmpty(poster.OriginalUrl))
                 {
-                    var bytes = await posterListProvider.LoadImageBytesAsync(poster.OriginalUrl, token);
+                    var bytes = await _posterListProvider.LoadImageBytesAsync(poster.OriginalUrl, token);
 
-                    await store.SavePosterAsync(poster.AnimeId, bytes);
+                    await _posterStore.SavePosterAsync(poster.AnimeId, bytes);
 
-                    if (options.QueriesInterval > TimeSpan.Zero) await Task.Delay(options.QueriesInterval, token);
+                    if (_options.QueriesInterval > TimeSpan.Zero) await Task.Delay(_options.QueriesInterval, token);
                 }
 
                 _logger.LogInformation("Poster has been loaded");
